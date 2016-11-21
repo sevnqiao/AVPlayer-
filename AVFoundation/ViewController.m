@@ -128,15 +128,10 @@
         
         _titleImageView.frame = CGRectMake(x, y, width, height);
         _titleImageView.layer.cornerRadius = width/2;
-        
-        
+
     }else{
         
         _imageView.frame = CGRectMake(offsetY/2, 0, kScreenWidth-offsetY, kHeaderViewHeight-offsetY);
-        
     }
-        
-    
-    NSLog(@"%f", offsetY);
 }
 @end

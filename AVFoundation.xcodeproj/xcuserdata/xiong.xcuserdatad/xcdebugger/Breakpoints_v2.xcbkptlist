@@ -20,12 +20,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "AVFoundation/VideoPlayView/VideoPlayView.m"
-            timestampString = "501403600.298146"
+            timestampString = "501411884.934445"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "229"
-            endingLineNumber = "229"
-            landmarkName = "-didClickFullScreenBtn:"
+            startingLineNumber = "274"
+            endingLineNumber = "274"
+            landmarkName = "-rotation:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

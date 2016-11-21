@@ -34,6 +34,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 
 @property (nonatomic, strong) AVPlayerLayer *playLayer;
 @property (nonatomic, strong) AVPlayer *player;
+@property (nonatomic, strong) NSTimer *timer;
 
 @end
 
@@ -44,7 +45,13 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     
     [_sliderView addTarget:self action:@selector(sliderValueWillChange) forControlEvents:UIControlEventTouchDown];
     [_sliderView addTarget:self action:@selector(sliderValueDidChange) forControlEvents:UIControlEventTouchUpInside];
- 
+
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tap:)];
+    UIRotationGestureRecognizer *rotation = [[UIRotationGestureRecognizer alloc]initWithTarget:self action:@selector(rotation:)];
+    [self.playView addGestureRecognizer:tap];
+    [self.playView addGestureRecognizer:rotation];
+    [tap requireGestureRecognizerToFail:rotation];
+    
     _replayBtn.layer.cornerRadius = 6;
     _replayBtn.layer.masksToBounds = YES;
     _replayBtn.hidden = YES;
@@ -96,6 +103,9 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
         [self.player play];
         [self.playBtn setImage:[UIImage imageNamed:@"pause"] forState:UIControlStateNormal];
         self.toolBarView.hidden = NO;
+        
+        _timer = [NSTimer scheduledTimerWithTimeInterval:7 target:self selector:@selector(hideToolBarView) userInfo:nil repeats:NO];
+        
     }else{
         [self.activityIndicatorView stopAnimating];
         [self.player pause];
@@ -244,6 +254,30 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     [self.player pause];
     [self removeFromSuperview];
 
+}
+
+- (void)tap:(UITapGestureRecognizer *)gesture {
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        self.toolBarView.alpha = 1;
+    }];
+    
+    [_timer invalidate];
+    _timer = [NSTimer scheduledTimerWithTimeInterval:7 target:self selector:@selector(hideToolBarView) userInfo:nil repeats:NO];
+}
+
+- (void)rotation:(UIRotationGestureRecognizer *)gesture {
+    if (gesture.state==UIGestureRecognizerStateEnded) {
+        
+        [self didClickFullScreenBtn:self.fullScreenBtn];
+    }
+    
+}
+
+- (void)hideToolBarView {
+    [UIView animateWithDuration:0.25 animations:^{
+        self.toolBarView.alpha = 0;
+    }];
 }
 
 - (void)dealloc {
