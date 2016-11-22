@@ -17,7 +17,6 @@
 		C87919B31DDF050400A9579F /* VideoPlayerCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = C87919AE1DDF050400A9579F /* VideoPlayerCell.xib */; };
 		C87919B41DDF050400A9579F /* VideoPlayView.m in Sources */ = {isa = PBXBuildFile; fileRef = C87919B01DDF050400A9579F /* VideoPlayView.m */; };
 		C87919B51DDF050400A9579F /* VideoPlayView.xib in Resources */ = {isa = PBXBuildFile; fileRef = C87919B11DDF050400A9579F /* VideoPlayView.xib */; };
-		C8C6429B1DE4228F003CA694 /* testvideo.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C862663C1DDD9CE20075E2D3 /* testvideo.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,7 +31,6 @@
 		C86266231DDD85570075E2D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C86266261DDD85570075E2D3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C86266281DDD85570075E2D3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		C862663C1DDD9CE20075E2D3 /* testvideo.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = testvideo.mp4; sourceTree = "<group>"; };
 		C87919AC1DDF050400A9579F /* VideoPlayerCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VideoPlayerCell.h; sourceTree = "<group>"; };
 		C87919AD1DDF050400A9579F /* VideoPlayerCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VideoPlayerCell.m; sourceTree = "<group>"; };
 		C87919AE1DDF050400A9579F /* VideoPlayerCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = VideoPlayerCell.xib; sourceTree = "<group>"; };
@@ -87,7 +85,6 @@
 				C862661B1DDD85570075E2D3 /* AppDelegate.m */,
 				C862661D1DDD85570075E2D3 /* ViewController.h */,
 				C862661E1DDD85570075E2D3 /* ViewController.m */,
-				C862663C1DDD9CE20075E2D3 /* testvideo.mp4 */,
 				C87919AB1DDF050400A9579F /* VideoPlayView */,
 				C86266201DDD85570075E2D3 /* Main.storyboard */,
 				C86266231DDD85570075E2D3 /* Assets.xcassets */,
@@ -192,7 +189,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C8C6429B1DE4228F003CA694 /* testvideo.mp4 in Resources */,
 				C86266271DDD85570075E2D3 /* LaunchScreen.storyboard in Resources */,
 				C87919B31DDF050400A9579F /* VideoPlayerCell.xib in Resources */,
 				C86266241DDD85570075E2D3 /* Assets.xcassets in Resources */,

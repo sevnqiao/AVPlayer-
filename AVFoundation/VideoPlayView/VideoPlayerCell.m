@@ -41,14 +41,20 @@
 }
 
 - (void)cellWithVideoUrl:(NSURL *)url {
+    
     self.defaultPlayBtn.hidden = NO;
     
-    dispatch_async(dispatch_queue_create("123123123", DISPATCH_QUEUE_SERIAL), ^{
+    dispatch_async(dispatch_queue_create("com.paic.leis.avfoundation", DISPATCH_QUEUE_SERIAL), ^{
         
-        UIImage *image  = [self thumbnailImageForVideo:url atTime:arc4random_uniform(500)];
+        UIImage *image  = [self thumbnailImageForVideo:url atTime:10];
+        
         if (image) {
+            
+            // 回到主线程显示图片
             dispatch_sync(dispatch_get_main_queue(), ^{
+                
                 self.defaultImage.image = image;
+                
             });
         }
     });
@@ -62,6 +68,14 @@
     
 }
 
+
+/**
+ 获取视频某一时刻的画面图片
+
+ @param videoURL 视频地址
+ @param time 获取的时刻
+ @return 该时刻图片
+ */
 - (UIImage*) thumbnailImageForVideo:(NSURL *)videoURL atTime:(NSTimeInterval)time {
     
     AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:videoURL options:nil];

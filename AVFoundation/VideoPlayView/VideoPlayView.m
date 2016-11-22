@@ -51,22 +51,6 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     [_sliderView addTarget:self action:@selector(sliderValueWillChange) forControlEvents:UIControlEventTouchDown];
     
     [_sliderView addTarget:self action:@selector(sliderValueDidChange) forControlEvents:UIControlEventTouchUpInside];
-
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tap:)];
-    
-    UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(doubleTap:)];
-    
-    doubleTap.numberOfTapsRequired = 2;
-    
-    UIRotationGestureRecognizer *rotation = [[UIRotationGestureRecognizer alloc]initWithTarget:self action:@selector(rotation:)];
-    
-    [self.playView addGestureRecognizer:tap];
-    
-    [self.playView addGestureRecognizer:doubleTap];
-    
-    [self.playView addGestureRecognizer:rotation];
-    
-    [tap requireGestureRecognizerToFail:doubleTap];
     
     _replayBtn.layer.cornerRadius = 6;
     
@@ -79,8 +63,31 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     _activityIndicatorView.layer.masksToBounds = YES;
     
     _toolBarView.hidden = YES;
+    
+    [self addGestureRecognizer];
 }
 
+#pragma mark - 初始化 videoPlayer
+/// 添加手势
+- (void)addGestureRecognizer {
+    
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tap:)];
+    
+    UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(doubleTap:)];
+    doubleTap.numberOfTapsRequired = 2;
+    
+    UIRotationGestureRecognizer *rotation = [[UIRotationGestureRecognizer alloc]initWithTarget:self action:@selector(rotation:)];
+    
+    [self.playView addGestureRecognizer:tap];
+    
+    [self.playView addGestureRecognizer:doubleTap];
+    
+    [self.playView addGestureRecognizer:rotation];
+    
+    [tap requireGestureRecognizerToFail:doubleTap];
+}
+
+/// 创建 playerLayer
 - (void)createPlayerLayerWithUrl:(NSURL *)url {
     
     self.player = [AVPlayer playerWithURL:url];
@@ -95,12 +102,35 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     
 }
 
+/// 添加监听
+- (void)addAvPlayerObserver{
+    
+    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioPlayStatus options:NSKeyValueObservingOptionNew context:nil];
+    
+    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioLoadedTimeRanges options:NSKeyValueObservingOptionNew context:nil];
+    
+    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioBufferCanPlay options:NSKeyValueObservingOptionNew context:nil];
+    
+    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioBufferPlayDone options:NSKeyValueObservingOptionNew context:nil];
+    
+    __weak typeof(self)weakSelf = self;
+    
+    // 添加播放进度的监听
+    [_playLayer.player addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(0.1, NSEC_PER_SEC) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+        
+        [weakSelf updateProgress ];
+    }];
+}
+
+#pragma mark - 播放相关事件
+/// 点击了播放按钮
 - (IBAction)didClickPlayBtn:(UIButton *)sender {
     
     [self play:self.player.rate == 0];
     
 }
 
+/// 播放完成后点击了 replay 按钮
 - (IBAction)didClickReplayBtn:(UIButton *)sender {
     
     sender.hidden = YES;
@@ -117,6 +147,12 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     
 }
 
+
+/**
+ 播放 / 暂停
+
+ @param isPlay  true:play  false:pause
+ */
 - (void)play:(BOOL)isPlay {
     
     if (isPlay) {
@@ -147,32 +183,14 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     }
 }
 
-
-- (void)addAvPlayerObserver{
-    
-    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioPlayStatus options:NSKeyValueObservingOptionNew context:nil];
-    
-    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioLoadedTimeRanges options:NSKeyValueObservingOptionNew context:nil];
-    
-    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioBufferCanPlay options:NSKeyValueObservingOptionNew context:nil];
-    
-    [_playLayer.player.currentItem addObserver:self forKeyPath:MedioBufferPlayDone options:NSKeyValueObservingOptionNew context:nil];
-    
-    __weak typeof(self)weakSelf = self;
-    
-    // 添加播放进度的监听
-    [_playLayer.player addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(0.1, NSEC_PER_SEC) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
-        
-        [weakSelf updateProgress ];
-    }];
-}
-
+/// 刷新播放进度条 和 时间
 - (void)updateProgress{
     
     _timeLabel.text = [self getTimeStrWithTimeInterval:CMTimeGetSeconds(_playLayer.player.currentItem.duration) - CMTimeGetSeconds(_playLayer.player.currentItem.currentTime)];
     
     _sliderView.value = CMTimeGetSeconds(_playLayer.player.currentItem.currentTime)/CMTimeGetSeconds(_playLayer.player.currentItem.duration);
     
+    /// 播放完成后执行操作
     if (CMTimeCompare(_playLayer.player.currentItem.duration, _playLayer.player.currentItem.currentTime) <= 0) {
         
         _replayBtn.hidden = NO;
@@ -183,12 +201,14 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
         
         self.videoPlayState = VideoPlayStateFinish;
         
+        /// 若处于画中画状态则播放完后关掉画中画
         if (_isPip) {
              [self stopPictureInPicture];
         }
     }
 }
 
+/// 将时间戳装话为指定格式时间字符串
 - (NSString *)getTimeStrWithTimeInterval:(CGFloat)timeInterval{
     
     if (isnan(timeInterval)) {
@@ -227,6 +247,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
             
             CMTimeRange timerange = [[timeRanges objectAtIndex:0] CMTimeRangeValue];
             
+            /// 更新缓冲进度条
             _progressView.progress = CMTimeGetSeconds(CMTimeAdd(timerange.start, timerange.duration))/CMTimeGetSeconds(_playLayer.player.currentItem.duration);
             
         }
@@ -243,7 +264,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 
 
 
-#pragma mark - sliderValueChange
+#pragma mark -  手动拖动播放进度
 - (void)sliderValueWillChange{
     
     [_playLayer.player pause];
@@ -260,9 +281,8 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     }];
 }
 
-
-
-
+#pragma mark - 全屏的处理
+/// 点击了全屏按钮
 - (IBAction)didClickFullScreenBtn:(UIButton *)sender {
     
     self.toolBarView.hidden = YES;
@@ -315,49 +335,8 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     _isFullScreen = !_isFullScreen;
 }
 
-- (void)startPictureInPicture {
-    
-    self.frame = CGRectMake(kScreenWidth/2, 64, kScreenWidth/2, 95);
-    
-    self.playLayer.frame = CGRectMake(0, 0, kScreenWidth/2, 95);
-    
-    self.toolBarView.hidden = YES;
-    
-    [_supView.superview addSubview:self];
-    
-    _isPip = YES;
-}
 
-- (void)stopPictureInPicture {
-    
-    self.frame = _oldFrame;
-    
-    self.playLayer.frame = CGRectMake(0, 0, kScreenWidth, 190);
-    
-    self.toolBarView.hidden = NO;
-    
-    [_supView addSubview:self];
-    
-    _isPip = NO;
-}
-
-- (void)showInView:(UIView *)view {
-    
-    _supView = view;
-    
-    _oldFrame = self.frame;
-    
-    [view addSubview:self];
-}
-
-- (void)remove {
-    
-    [self.player pause];
-    
-    [self removeFromSuperview];
-
-}
-
+# pragma mark - 手势处理
 - (void)tap:(UITapGestureRecognizer *)gesture {
     
     if (!_isHideToolBar) {
@@ -395,6 +374,53 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
         
         [self didClickFullScreenBtn:self.fullScreenBtn];
     }
+    
+}
+
+
+#pragma mark - 显示模式的设置
+/// 开启画中画
+- (void)startPictureInPicture {
+    
+    self.frame = CGRectMake(kScreenWidth/2, 64, kScreenWidth/2, 95);
+    
+    self.playLayer.frame = CGRectMake(0, 0, kScreenWidth/2, 95);
+    
+    self.toolBarView.hidden = YES;
+    
+    [[UIApplication sharedApplication].keyWindow addSubview:self];
+    
+    _isPip = YES;
+}
+
+/// 退出画中画
+- (void)stopPictureInPicture {
+    
+    self.frame = _oldFrame;
+    
+    self.playLayer.frame = CGRectMake(0, 0, kScreenWidth, 190);
+    
+    self.toolBarView.hidden = NO;
+    
+    [_supView addSubview:self];
+    
+    _isPip = NO;
+}
+
+- (void)showInView:(UIView *)view {
+    
+    _supView = view;
+    
+    _oldFrame = self.frame;
+    
+    [view addSubview:self];
+}
+
+- (void)remove {
+    
+    [self.player pause];
+    
+    [self removeFromSuperview];
     
 }
 

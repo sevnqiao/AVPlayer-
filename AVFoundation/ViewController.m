@@ -72,9 +72,7 @@
     
     VideoPlayerCell *cell = [VideoPlayerCell cellWithTableView:tableView];
     
-    NSURL *url = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"testvideo" ofType:@"mp4"]];
-    
-    url = [NSURL URLWithString:@"http://file3.data.weipan.cn.wscdns.com/3101888/95f124ed139d3c29a2ab36c1f03ff9cdeb49d0ef?ip=1479462153,180.166.212.58&ssig=HCTsqre3Dk&Expires=1479462753&KID=sae,l30zoo1wmz&fn=1-8%20%E7%B6%93%E5%85%B8%E9%96%B1%E8%AE%80%E7%A4%BA%E4%BE%8B%E4%B8%8B%20%2810-54%29.mp4"];
+    NSURL *url = [NSURL URLWithString:@"http://file3.data.weipan.cn.wscdns.com/3101888/95f124ed139d3c29a2ab36c1f03ff9cdeb49d0ef?ip=1479462153,180.166.212.58&ssig=HCTsqre3Dk&Expires=1479462753&KID=sae,l30zoo1wmz&fn=1-8%20%E7%B6%93%E5%85%B8%E9%96%B1%E8%AE%80%E7%A4%BA%E4%BE%8B%E4%B8%8B%20%2810-54%29.mp4"];
     
     url = [NSURL URLWithString:@"http://centavedio.file.alimmdn.com/video/estatevideo/CB443131-FB80-46F8-88BA-9EEA6CBF025C.mp4?t=1471507275826"];
     
