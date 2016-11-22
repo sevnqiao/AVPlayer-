@@ -24,6 +24,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     CGRect _oldFrame;  // 相对于_supView 的 frame
     BOOL _isFullScreen;
     BOOL _isHideToolBar;
+    BOOL _isPip;
 }
 
 @property (weak, nonatomic) IBOutlet UIView *playView;
@@ -36,7 +37,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activityIndicatorView;
 @property (weak, nonatomic) IBOutlet UIButton *replayBtn;
 
-@property (nonatomic, strong) AVPlayerLayer *playLayer;
+//@property (nonatomic, strong) AVPlayerLayer *playLayer;
 @property (nonatomic, strong) AVPlayer *player;
 @property (nonatomic, strong) NSTimer *timer;
 
@@ -48,28 +49,37 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     [super awakeFromNib];
     
     [_sliderView addTarget:self action:@selector(sliderValueWillChange) forControlEvents:UIControlEventTouchDown];
+    
     [_sliderView addTarget:self action:@selector(sliderValueDidChange) forControlEvents:UIControlEventTouchUpInside];
 
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tap:)];
+    
     UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(doubleTap:)];
+    
     doubleTap.numberOfTapsRequired = 2;
+    
     UIRotationGestureRecognizer *rotation = [[UIRotationGestureRecognizer alloc]initWithTarget:self action:@selector(rotation:)];
+    
     [self.playView addGestureRecognizer:tap];
+    
     [self.playView addGestureRecognizer:doubleTap];
+    
     [self.playView addGestureRecognizer:rotation];
+    
     [tap requireGestureRecognizerToFail:doubleTap];
     
     _replayBtn.layer.cornerRadius = 6;
+    
     _replayBtn.layer.masksToBounds = YES;
+    
     _replayBtn.hidden = YES;
     
     _activityIndicatorView.layer.cornerRadius = 6;
+    
     _activityIndicatorView.layer.masksToBounds = YES;
     
     _toolBarView.hidden = YES;
 }
-
-
 
 - (void)createPlayerLayerWithUrl:(NSURL *)url {
     
@@ -85,18 +95,22 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     
 }
 
-
 - (IBAction)didClickPlayBtn:(UIButton *)sender {
+    
     [self play:self.player.rate == 0];
     
 }
 
 - (IBAction)didClickReplayBtn:(UIButton *)sender {
+    
     sender.hidden = YES;
+    
     [self.activityIndicatorView startAnimating];
+    
     [self.playLayer.player seekToTime:CMTimeMake(1, 1) completionHandler:^(BOOL finished) {
        
         if (finished) {
+            
             [self play:YES];
         }
     }];
@@ -104,75 +118,117 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 }
 
 - (void)play:(BOOL)isPlay {
+    
     if (isPlay) {
+        
+        self.videoPlayState = VideoPlayStatePlaying;
+        
         [self.activityIndicatorView stopAnimating];
+        
         [self.player play];
+        
         [self.playBtn setImage:[UIImage imageNamed:@"pause"] forState:UIControlStateNormal];
+        
         self.toolBarView.hidden = NO;
         
         _timer = [NSTimer scheduledTimerWithTimeInterval:7 target:self selector:@selector(hideToolBarView) userInfo:nil repeats:NO];
         
     }else{
+        
+        self.videoPlayState = VideoPlayStatePause;
+        
         [self.activityIndicatorView stopAnimating];
+        
         [self.player pause];
+        
         [self.playBtn setImage:[UIImage imageNamed:@"play"] forState:UIControlStateNormal];
+        
         [_timer invalidate];
     }
 }
 
 
 - (void)addAvPlayerObserver{
+    
     [_playLayer.player.currentItem addObserver:self forKeyPath:MedioPlayStatus options:NSKeyValueObservingOptionNew context:nil];
+    
     [_playLayer.player.currentItem addObserver:self forKeyPath:MedioLoadedTimeRanges options:NSKeyValueObservingOptionNew context:nil];
+    
     [_playLayer.player.currentItem addObserver:self forKeyPath:MedioBufferCanPlay options:NSKeyValueObservingOptionNew context:nil];
+    
     [_playLayer.player.currentItem addObserver:self forKeyPath:MedioBufferPlayDone options:NSKeyValueObservingOptionNew context:nil];
     
     __weak typeof(self)weakSelf = self;
+    
     // 添加播放进度的监听
     [_playLayer.player addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(0.1, NSEC_PER_SEC) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+        
         [weakSelf updateProgress ];
     }];
 }
 
 - (void)updateProgress{
+    
     _timeLabel.text = [self getTimeStrWithTimeInterval:CMTimeGetSeconds(_playLayer.player.currentItem.duration) - CMTimeGetSeconds(_playLayer.player.currentItem.currentTime)];
     
     _sliderView.value = CMTimeGetSeconds(_playLayer.player.currentItem.currentTime)/CMTimeGetSeconds(_playLayer.player.currentItem.duration);
     
     if (CMTimeCompare(_playLayer.player.currentItem.duration, _playLayer.player.currentItem.currentTime) <= 0) {
+        
         _replayBtn.hidden = NO;
+        
         [_timer invalidate];
-        _toolBarView.hidden = NO;
+        
+        _toolBarView.alpha = 1;
+        
+        self.videoPlayState = VideoPlayStateFinish;
+        
+        if (_isPip) {
+             [self stopPictureInPicture];
+        }
     }
-    
-    NSLog(@"%f", CMTimeGetSeconds(_playLayer.player.currentItem.duration) - CMTimeGetSeconds(_playLayer.player.currentItem.currentTime));
 }
 
 - (NSString *)getTimeStrWithTimeInterval:(CGFloat)timeInterval{
     
     if (isnan(timeInterval)) {
+        
         return @"00:00";
     }
     int m = (timeInterval)/60;
+    
     int s = timeInterval-m*60;
+    
     return [NSString stringWithFormat:@"%02d:%02d",m,s];
 }
 
 #pragma mark - 监听 status
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
+    
     if ([keyPath isEqualToString:MedioPlayStatus]) {
-        if ([[change objectForKey:NSKeyValueChangeNewKey]  isEqual: @1]) {
+        
+        if ([[change objectForKey:NSKeyValueChangeNewKey]  isEqual: @(AVPlayerStatusReadyToPlay)]) {
+            
             [self updateProgress];
             
             [self.playView.layer addSublayer:self.playLayer];
             
             [self play:YES];
+            
+        }else if ([[change objectForKey:NSKeyValueChangeNewKey]  isEqual: @(AVPlayerStatusFailed)]) {
+            
+            self.videoPlayState = VideoPlayStateFaild;
         }
     }else if ([keyPath isEqualToString:MedioLoadedTimeRanges]) {
+        
         NSArray *timeRanges = (NSArray *)[change objectForKey:NSKeyValueChangeNewKey];
+        
         if (timeRanges && [timeRanges count]) {
+            
             CMTimeRange timerange = [[timeRanges objectAtIndex:0] CMTimeRangeValue];
+            
             _progressView.progress = CMTimeGetSeconds(CMTimeAdd(timerange.start, timerange.duration))/CMTimeGetSeconds(_playLayer.player.currentItem.duration);
+            
         }
     }else if ([keyPath isEqualToString:MedioBufferPlayDone]) {
         
@@ -189,13 +245,18 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 
 #pragma mark - sliderValueChange
 - (void)sliderValueWillChange{
+    
     [_playLayer.player pause];
 }
 
 - (void)sliderValueDidChange{
+    
     [_playLayer.player seekToTime:CMTimeMakeWithSeconds(_sliderView.value * CMTimeGetSeconds(_playLayer.player.currentItem.duration), NSEC_PER_SEC) completionHandler:^(BOOL finished) {
+        
         _timeLabel.text = [self getTimeStrWithTimeInterval:_sliderView.value * CMTimeGetSeconds(_playLayer.player.currentItem.duration)];
+        
         [self play:YES];
+        
     }];
 }
 
@@ -254,20 +315,51 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     _isFullScreen = !_isFullScreen;
 }
 
+- (void)startPictureInPicture {
+    
+    self.frame = CGRectMake(kScreenWidth/2, 64, kScreenWidth/2, 95);
+    
+    self.playLayer.frame = CGRectMake(0, 0, kScreenWidth/2, 95);
+    
+    self.toolBarView.hidden = YES;
+    
+    [_supView.superview addSubview:self];
+    
+    _isPip = YES;
+}
+
+- (void)stopPictureInPicture {
+    
+    self.frame = _oldFrame;
+    
+    self.playLayer.frame = CGRectMake(0, 0, kScreenWidth, 190);
+    
+    self.toolBarView.hidden = NO;
+    
+    [_supView addSubview:self];
+    
+    _isPip = NO;
+}
 
 - (void)showInView:(UIView *)view {
+    
     _supView = view;
+    
     _oldFrame = self.frame;
+    
     [view addSubview:self];
 }
 
 - (void)remove {
+    
     [self.player pause];
+    
     [self removeFromSuperview];
 
 }
 
 - (void)tap:(UITapGestureRecognizer *)gesture {
+    
     if (!_isHideToolBar) {
         
         [self hideToolBarView];
@@ -276,13 +368,18 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     }
     
     [UIView animateWithDuration:0.25 animations:^{
+        
         self.toolBarView.alpha = 1;
+        
     }completion:^(BOOL finished) {
+        
         _isHideToolBar = NO;
     }];
     
     if (self.playLayer.player.rate != 0) {
+        
         [_timer invalidate];
+        
         _timer = [NSTimer scheduledTimerWithTimeInterval:7 target:self selector:@selector(hideToolBarView) userInfo:nil repeats:NO];
     }
 }
@@ -293,6 +390,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 }
 
 - (void)rotation:(UIRotationGestureRecognizer *)gesture {
+    
     if (gesture.state==UIGestureRecognizerStateEnded) {
         
         [self didClickFullScreenBtn:self.fullScreenBtn];
@@ -301,17 +399,25 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 }
 
 - (void)hideToolBarView {
+    
     [UIView animateWithDuration:0.25 animations:^{
+        
         self.toolBarView.alpha = 0;
+        
     }completion:^(BOOL finished) {
+        
         _isHideToolBar = YES;
     }];
 }
 
 - (void)dealloc {
+    
     [_playLayer.player.currentItem removeObserver:self forKeyPath:MedioPlayStatus];
+    
     [_playLayer.player.currentItem removeObserver:self forKeyPath:MedioLoadedTimeRanges];
+    
     [_playLayer.player.currentItem removeObserver:self forKeyPath:MedioBufferCanPlay];
+    
     [_playLayer.player.currentItem removeObserver:self forKeyPath:MedioBufferPlayDone];
 }
 @end

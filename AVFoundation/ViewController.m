@@ -10,12 +10,16 @@
 #import "VideoPlayerCell.h"
 #import "VideoPlayView.h"
 
+
 #define kHeaderViewHeight 500
 #define kTitleImageHeight 64
 #define kScreenWidth [UIScreen mainScreen].bounds.size.width
 #define kScreenHeight [UIScreen mainScreen].bounds.size.height
 
 @interface ViewController ()<UITableViewDelegate, UITableViewDataSource>
+{
+    CGRect _oldPlayerFrame;
+}
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) NSMutableArray *dataArray;
 @property (nonatomic, strong) NSMutableArray *playViewArr;
@@ -52,10 +56,9 @@
     
     [self.view bringSubviewToFront:self.navView];
     
-//    self.navView.alpha = 0;
-    
     self.titleImageView.layer.cornerRadius = kTitleImageHeight/2;
     self.titleImageView.layer.masksToBounds = YES;
+    
 }
 
 #pragma mark - UITableViewDelegate/UITableViewDataSource
@@ -64,11 +67,10 @@
     
     return 20;
 }
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
     
     VideoPlayerCell *cell = [VideoPlayerCell cellWithTableView:tableView];
-    
-    //
     
     NSURL *url = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"testvideo" ofType:@"mp4"]];
     
@@ -105,7 +107,38 @@
     return 190;
 }
 
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    [_playViewArr enumerateObjectsUsingBlock:^(VideoPlayView  *_Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if (CGRectEqualToRect(cell.frame, _oldPlayerFrame)) {
+            
+            if (obj.videoPlayState == VideoPlayStatePlaying || obj.videoPlayState == VideoPlayStatePause) {
+                
+                [obj stopPictureInPicture];
+            }
+        }
+    }];
+}
 
+- (void)tableView:(UITableView *)tableView didEndDisplayingCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    [_playViewArr enumerateObjectsUsingBlock:^(VideoPlayView  *_Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if (CGRectEqualToRect(cell.frame, obj.frame)) {
+            
+            if (obj.videoPlayState == VideoPlayStatePlaying || obj.videoPlayState == VideoPlayStatePause) {
+                
+                _oldPlayerFrame = obj.frame;
+                
+                [obj startPictureInPicture];
+                
+            }
+        }
+    }];
+}
+
+#pragma mark - UIScrollViewDelegate
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     
     CGFloat offsetY = scrollView.contentOffset.y;
@@ -115,16 +148,12 @@
         if (offsetY > kHeaderViewHeight) {
             return;
         }
-        
         _imageView.frame = CGRectMake(0, -offsetY/3, kScreenWidth, kHeaderViewHeight);
-        
-//        self.navView.alpha = offsetY/(kHeaderViewHeight-kTitleImageHeight);
         
         CGFloat width = kTitleImageHeight - kTitleImageHeight/2 * offsetY/(kHeaderViewHeight-kTitleImageHeight);
         CGFloat height = width;
         CGFloat x = (kScreenWidth - width)/2;
         CGFloat y = kTitleImageHeight/2;
-        
         
         _titleImageView.frame = CGRectMake(x, y, width, height);
         _titleImageView.layer.cornerRadius = width/2;

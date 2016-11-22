@@ -9,7 +9,6 @@
 #import "VideoPlayerCell.h"
 #import <AVFoundation/AVFoundation.h>
 #import <MediaPlayer/MediaPlayer.h>
-#import "UIImageView+WebCache.h"
 
 @interface VideoPlayerCell ()
 
