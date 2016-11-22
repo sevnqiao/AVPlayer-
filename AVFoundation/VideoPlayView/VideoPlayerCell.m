@@ -46,7 +46,7 @@
     
     dispatch_async(dispatch_queue_create("123123123", DISPATCH_QUEUE_SERIAL), ^{
         
-        UIImage *image  = [self thumbnailImageForVideo:url atTime:14];
+        UIImage *image  = [self thumbnailImageForVideo:url atTime:arc4random_uniform(500)];
         if (image) {
             dispatch_sync(dispatch_get_main_queue(), ^{
                 self.defaultImage.image = image;

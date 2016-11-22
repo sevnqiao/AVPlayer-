@@ -20,13 +20,45 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "AVFoundation/VideoPlayView/VideoPlayView.m"
-            timestampString = "501411884.934445"
+            timestampString = "501471859.206759"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "274"
-            endingLineNumber = "274"
-            landmarkName = "-rotation:"
+            startingLineNumber = "304"
+            endingLineNumber = "304"
+            landmarkName = "-hideToolBarView:"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[VideoPlayView hideToolBarView:]"
+                  moduleName = "AVFoundation"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/xiong/Desktop/AVFoundation/AVFoundation/VideoPlayView/VideoPlayView.m"
+                  timestampString = "501471859.442545"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "304"
+                  endingLineNumber = "304"
+                  offsetFromSymbolStart = "58">
+               </Location>
+               <Location
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__33-[VideoPlayView hideToolBarView:]_block_invoke"
+                  moduleName = "AVFoundation"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/xiong/Desktop/AVFoundation/AVFoundation/VideoPlayView/VideoPlayView.m"
+                  timestampString = "501471859.446002"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "304"
+                  endingLineNumber = "304"
+                  offsetFromSymbolStart = "12">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

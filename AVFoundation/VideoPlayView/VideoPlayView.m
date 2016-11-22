@@ -14,12 +14,16 @@ static NSString *MedioLoadedTimeRanges = @"loadedTimeRanges";       // 缓冲进
 static NSString *MedioBufferCanPlay = @"playbackLikelyToKeepUp";    // 缓冲部分可以播放
 static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部分播放完毕, 需继续缓冲
 
+#define kScreenWidth [UIScreen mainScreen].bounds.size.width
+#define kScreenHeight [UIScreen mainScreen].bounds.size.height
+
 @interface VideoPlayView ()
 {
     UIView *_supView;  // 父视图
     CGRect _tempFrame; // 相对于 keyWindow 的 frame
     CGRect _oldFrame;  // 相对于_supView 的 frame
     BOOL _isFullScreen;
+    BOOL _isHideToolBar;
 }
 
 @property (weak, nonatomic) IBOutlet UIView *playView;
@@ -47,10 +51,13 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     [_sliderView addTarget:self action:@selector(sliderValueDidChange) forControlEvents:UIControlEventTouchUpInside];
 
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tap:)];
+    UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(doubleTap:)];
+    doubleTap.numberOfTapsRequired = 2;
     UIRotationGestureRecognizer *rotation = [[UIRotationGestureRecognizer alloc]initWithTarget:self action:@selector(rotation:)];
     [self.playView addGestureRecognizer:tap];
+    [self.playView addGestureRecognizer:doubleTap];
     [self.playView addGestureRecognizer:rotation];
-    [tap requireGestureRecognizerToFail:rotation];
+    [tap requireGestureRecognizerToFail:doubleTap];
     
     _replayBtn.layer.cornerRadius = 6;
     _replayBtn.layer.masksToBounds = YES;
@@ -80,7 +87,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 
 
 - (IBAction)didClickPlayBtn:(UIButton *)sender {
-    [self play];
+    [self play:self.player.rate == 0];
     
 }
 
@@ -90,15 +97,14 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     [self.playLayer.player seekToTime:CMTimeMake(1, 1) completionHandler:^(BOOL finished) {
        
         if (finished) {
-            [self.playLayer.player play];
-            [self.activityIndicatorView stopAnimating];
+            [self play:YES];
         }
     }];
     
 }
 
-- (void)play {
-    if (self.player.rate == 0) {
+- (void)play:(BOOL)isPlay {
+    if (isPlay) {
         [self.activityIndicatorView stopAnimating];
         [self.player play];
         [self.playBtn setImage:[UIImage imageNamed:@"pause"] forState:UIControlStateNormal];
@@ -110,6 +116,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
         [self.activityIndicatorView stopAnimating];
         [self.player pause];
         [self.playBtn setImage:[UIImage imageNamed:@"play"] forState:UIControlStateNormal];
+        [_timer invalidate];
     }
 }
 
@@ -132,9 +139,13 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
     
     _sliderView.value = CMTimeGetSeconds(_playLayer.player.currentItem.currentTime)/CMTimeGetSeconds(_playLayer.player.currentItem.duration);
     
-    if (CMTimeCompare(_playLayer.player.currentItem.duration, _playLayer.player.currentItem.currentTime) == 0) {
+    if (CMTimeCompare(_playLayer.player.currentItem.duration, _playLayer.player.currentItem.currentTime) <= 0) {
         _replayBtn.hidden = NO;
+        [_timer invalidate];
+        _toolBarView.hidden = NO;
     }
+    
+    NSLog(@"%f", CMTimeGetSeconds(_playLayer.player.currentItem.duration) - CMTimeGetSeconds(_playLayer.player.currentItem.currentTime));
 }
 
 - (NSString *)getTimeStrWithTimeInterval:(CGFloat)timeInterval{
@@ -155,7 +166,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
             
             [self.playView.layer addSublayer:self.playLayer];
             
-            [self play];
+            [self play:YES];
         }
     }else if ([keyPath isEqualToString:MedioLoadedTimeRanges]) {
         NSArray *timeRanges = (NSArray *)[change objectForKey:NSKeyValueChangeNewKey];
@@ -184,7 +195,7 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 - (void)sliderValueDidChange{
     [_playLayer.player seekToTime:CMTimeMakeWithSeconds(_sliderView.value * CMTimeGetSeconds(_playLayer.player.currentItem.duration), NSEC_PER_SEC) completionHandler:^(BOOL finished) {
         _timeLabel.text = [self getTimeStrWithTimeInterval:_sliderView.value * CMTimeGetSeconds(_playLayer.player.currentItem.duration)];
-        [_playLayer.player play];
+        [self play:YES];
     }];
 }
 
@@ -228,9 +239,9 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
             
             self.transform = CGAffineTransformMakeRotation(M_PI_2);
             
-            self.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height);
+            self.frame = CGRectMake(0, 0, kScreenWidth, kScreenHeight);
             
-            self.playLayer.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.height, [UIScreen mainScreen].bounds.size.width);
+            self.playLayer.frame = CGRectMake(0, 0, kScreenHeight, kScreenWidth);
             
         }completion:^(BOOL finished) {
             
@@ -257,13 +268,28 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 }
 
 - (void)tap:(UITapGestureRecognizer *)gesture {
+    if (!_isHideToolBar) {
+        
+        [self hideToolBarView];
+        
+        return;
+    }
     
     [UIView animateWithDuration:0.25 animations:^{
         self.toolBarView.alpha = 1;
+    }completion:^(BOOL finished) {
+        _isHideToolBar = NO;
     }];
     
-    [_timer invalidate];
-    _timer = [NSTimer scheduledTimerWithTimeInterval:7 target:self selector:@selector(hideToolBarView) userInfo:nil repeats:NO];
+    if (self.playLayer.player.rate != 0) {
+        [_timer invalidate];
+        _timer = [NSTimer scheduledTimerWithTimeInterval:7 target:self selector:@selector(hideToolBarView) userInfo:nil repeats:NO];
+    }
+}
+
+- (void)doubleTap:(UITapGestureRecognizer *)gesture {
+    
+    [self didClickFullScreenBtn:self.fullScreenBtn];
 }
 
 - (void)rotation:(UIRotationGestureRecognizer *)gesture {
@@ -277,6 +303,8 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 - (void)hideToolBarView {
     [UIView animateWithDuration:0.25 animations:^{
         self.toolBarView.alpha = 0;
+    }completion:^(BOOL finished) {
+        _isHideToolBar = YES;
     }];
 }
 
