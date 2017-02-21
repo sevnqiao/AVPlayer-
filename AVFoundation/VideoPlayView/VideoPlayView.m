@@ -365,6 +365,10 @@ static NSString *MedioBufferPlayDone = @"playbackBufferEmpty";      // 缓冲部
 
 - (void)doubleTap:(UITapGestureRecognizer *)gesture {
     
+    if (self.player.rate != 1) {
+        return;
+    }
+    
     [self didClickFullScreenBtn:self.fullScreenBtn];
 }
 
